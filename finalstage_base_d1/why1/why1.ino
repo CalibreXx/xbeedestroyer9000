@@ -3,6 +3,12 @@
 #include <LCDi2cR.h>
 #define button 2
 
+//------------------JOYSTICK-------------------//
+const int SW_pin = 2; // digital pin connected to switch output
+const int X_pin = A0; // analog pin connected to X output
+const int Y_pin = A1; // analog pin connected to Y output
+
+//-----------------LCD--------------------------//
 LCDi2cR lcd = LCDi2cR(4, 20, 0x63, 0);
 
 //int temp102_bits, keypad;float convertedTemp102;
@@ -28,6 +34,10 @@ unsigned long long previous_press_time = 0;
 int no_of_presses = 0;
 
 void setup() {
+  //----------------------JOYSTICK----------------------//
+  pinMode(SW_pin, INPUT);
+  digitalWrite(SW_pin, HIGH);
+  //-----------------XBEE------------------------//
   pinMode(statusLed, OUTPUT);
   pinMode(errorLed,  OUTPUT);
   pinMode(dataLed,   OUTPUT);
@@ -57,9 +67,92 @@ void loop() {
   int keyInput;
   keyInput = getKeypad();
   getTemp102(); //store
+  lcdMenu();
 
 }
+//--------------------LCD MENU AND IT's FUNCTION-------------------//
+void lcdMenu(){
+  
+  int keyInput;
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("1: Werewolf 1");
+  lcd.setCursor(2,0);
+  lcd.print("2: Werewolf 2");
+  lcd.setCursor(3,0);
+  lcd.print("3: Camera Control");
+  lcd.setCursor(4,0);
+  lcd.print("4: Live Sensor Data");
+  
+  keyInput = getKeypad();
+  while (keyInput == -16){ // NO KEY INPUT
+    keyInput = getKeypad();
+  }
+  switch (keyInput){
+    case 49: // Werewolf 1
+      transmitData("GSKey Input:1");
+      lcdWolves(1);
+      break;
+    case 50: //Werewolf 2
+      transmitData("GSKey Input:2");
+      lcdWolves(2);
+      break;
+    case 51: // Free pan
+      transmitData("GSKey Input:3");
+      joyStick();
+      break;
+    case 52: // Get live sensor data
+      transmitData("GSKey Input:4");
+      receiveData();
+      receiveData();
+  }
+}
 
+// ---------------- THIS NOT DONE YET ---------------------------------//
+void lcdWolves(String wolfnumber){
+  int keyInput = -16;
+  
+  while (keyInput == -16){
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Werewolf ");
+    lcd.print(wolfnumber);
+    lcd.setCursor(1,0);
+    lcd.print("Distance: "); // ******NEED TO WRITE CODE TO GET DATA FOR THIS
+    
+    keyInput = getKeypad();
+  }
+  
+}
+
+void joyStick(){
+  int keyInput = -16;
+  int x_pos = analogRead(X_pin);
+  int y_pos = analogRead(Y_pin);
+  
+  while (keyInput == -16){
+    if (x_pos < 300){ //Servo Pans Right
+      Serial.println("Turning Right now");
+      transmitData("GSX:Right");
+    }
+    if (x_pos > 700){ //Servo Pans Left
+      Serial.println("Turning Left now");
+      transmitData("GSX:Left");
+      delay (100) ;
+    }
+    if (y_pos < 300){ //Servo Pans Down
+      Serial.println("Facing Down now");
+      transmitData("GSY:Down");
+      delay (100) ;
+    }
+    if (y_pos > 700){ //Servo Pans Up
+      Serial.println("Facing UP now");
+      transmitData("GSY:Up");
+      delay (100) ;
+    }
+     keyInput = getKeypad();
+  }
+  
 //--------------XBEE TRANSMIT to 0x4098DA08 FUNCTION-----------------
 void transmitData(String data) {
   int limit = 50;
