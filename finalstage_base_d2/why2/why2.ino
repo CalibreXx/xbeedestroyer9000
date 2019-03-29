@@ -122,7 +122,7 @@ void loop() {
 
 
 
-
+// --------------------- Transmit to Base station---------------------//
 void transmitData(String data) {
   tx_success = false;
   int limit = 5;
@@ -170,8 +170,58 @@ void sendData(String data) {
     flashLed(errorLed, 5, 50);
   }
 }
+// ----------------TRANSMIT TO WEREWOLF---------------------------
+
+void transmitWolfData(String data) {
+  tx_success = false;
+  int limit = 5;
+  while (tx_success == false & limit ) {
+    sendWolfData(data);
+    limit -= 1;
+    delay(500);
+  }
+}
+void sendWolfData(String data) {
+  uint8_t payload[30] = {0}; // payload has been changed from 20 to 30
+  for (int j = 0; j < data.length(); j += 1) {
+    payload[j] = data[j];
+  }
+  XBeeAddress64 addr64 = XBeeAddress64(0x0013A200, 0x4098DA02); // Need change to wolf xbee
+  ZBTxRequest zbTx = ZBTxRequest(addr64, payload, sizeof(payload));
+  xbee.send(zbTx);
+  // flash TX indicator
+  flashLed(dataLed, 1, 10);
+  // after sending a tx request, we expect a status response
+  // wait up to half a second for the status response
+  if (xbee.readPacket(500))
+  {
+    // should be a znet tx status
+    if (xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE)
+    {
+      xbee.getResponse().getZBTxStatusResponse(txStatus);
+      // get the delivery status, the fifth byte
+      if (txStatus.getDeliveryStatus() == SUCCESS)
+      {
+        // success.  time to celebrate
+        flashLed(statusLed, 1, 10);
+        tx_success = true;
+      }
+      else
+      {
+        // the remote XBee did not receive our packet. is it powered on?
+        flashLed(errorLed, 1, 50);
+      }
+    }
+  }
+  else
+  {
+    // local XBee did not provide a timely TX Status Response -- should not happen
+    flashLed(errorLed, 5, 50);
+  }
+}
+
 //function to interpret data received from Xbee
-void interpretData(String xbeeInput){
+void interpretData(String xbeeInput){ 
   String identity;
   identity = char(xbeeInput[0]) + char(xbeeInput[1]);
   String weredatatype;
@@ -204,6 +254,7 @@ void interpretData(String xbeeInput){
   }
   return 0;
 }
+
 void interpretKeypress(int keypress){ //fn to interpret keypress. keypress input in form of ascii 
   switch (keypress){
     case 49: //ascii 1
@@ -212,8 +263,11 @@ void interpretKeypress(int keypress){ //fn to interpret keypress. keypress input
     case 50: //ascii 2
       Serial.println("camera lock on werewolf 2");
       break;
-    case 42:
+    case 51: // asciii 3
       Serial.println("disengage lock on. free roam mode");
+      break;
+    case 52: // ascii 4
+      Serial.println("Sending live data");
       break;
     Serial.print("keyinput received: "); //for testing, can comment out later
     Serial.println(keypress);
