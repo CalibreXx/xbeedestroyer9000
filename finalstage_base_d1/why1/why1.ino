@@ -85,24 +85,24 @@ void lcdMenu(){
   lcd.print("4: Live Sensor Data");
   
   keyInput = getKeypad();
-  while (keyInput == -16){ // NO KEY INPUT
+  while (keyInput == 0){ // NO KEY INPUT 
     keyInput = getKeypad();
   }
   switch (keyInput){
     case 49: // Werewolf 1
-      transmitData("GSKey Input:1");
-      lcdWolves(1);
+      transmitData("GSKey Input:49");
+      lcdWolves("1");
       break;
     case 50: //Werewolf 2
-      transmitData("GSKey Input:2");
-      lcdWolves(2);
+      transmitData("GSKey Input:50");
+      lcdWolves("2");
       break;
     case 51: // Free pan
-      transmitData("GSKey Input:3");
+      transmitData("GSKey Input:51");
       joyStick();
       break;
     case 52: // Get live sensor data
-      transmitData("GSKey Input:4");
+      transmitData("GSKey Input:52");
       receiveData();
       receiveData();
   }
@@ -110,9 +110,9 @@ void lcdMenu(){
 
 // ---------------- THIS NOT DONE YET ---------------------------------//
 void lcdWolves(String wolfnumber){
-  int keyInput = -16;
+  int keyInput = 32;
   
-  while (keyInput == -16){
+  while (keyInput == 32){
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.print("Werewolf ");
@@ -124,34 +124,46 @@ void lcdWolves(String wolfnumber){
   }
   
 }
-
+// reads joystick input continuously and sends commands to control servos.
+// stop function by pressing any key on keypad. 
+// commands sent as GSJoystick:x_angle,y angle
 void joyStick(){
-  int keyInput = -16;
-  int x_pos = analogRead(X_pin);
-  int y_pos = analogRead(Y_pin);
-  
-  while (keyInput == -16){
-    if (x_pos < 300){ //Servo Pans Right
-      Serial.println("Turning Right now");
-      transmitData("GSX:Right");
-    }
-    if (x_pos > 700){ //Servo Pans Left
-      Serial.println("Turning Left now");
-      transmitData("GSX:Left");
-      delay (100) ;
-    }
-    if (y_pos < 300){ //Servo Pans Down
-      Serial.println("Facing Down now");
-      transmitData("GSY:Down");
-      delay (100) ;
-    }
-    if (y_pos > 700){ //Servo Pans Up
-      Serial.println("Facing UP now");
-      transmitData("GSY:Up");
-      delay (100) ;
-    }
+  int keyInput = 32;
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Press Any Key");
+  lcd.setCursor(1,0);
+  lcd.print("to stop free pan");
+  while (keyInput == 0){
+    int x_pos = analogRead(X_pin); //consider using map function
+    int y_pos = analogRead(Y_pin);
+    x_pos = map(x_pos, 0, 1023, 0, 180);
+    y_pos = map(y_pos, 0, 1023, 0, 180);
+    String joystickdata = "GSJoystick:";
+    joystickdata += x_pos+','+y_pos; 
+    transmitData(joystickdata);
+//    if (x_pos < 300){ //Servo Pans Right
+//      Serial.println("Turning Right now");
+//      transmitData("GSJoystick:Right");
+//    }
+//    if (x_pos > 700){ //Servo Pans Left
+//      Serial.println("Turning Left now");
+//      transmitData("GSJoystick:Left");
+//      delay (100) ;
+//    }
+//    if (y_pos < 300){ //Servo Pans Down
+//      Serial.println("Facing Down now");
+//      transmitData("GSJoystick:Down");
+//      delay (100) ;
+//    }
+//    if (y_pos > 700){ //Servo Pans Up
+//      Serial.println("Facing UP now");
+//      transmitData("GSJosytick:Up");
+//      delay (100) ;
+//    }
      keyInput = getKeypad();
   }
+}
   
 //--------------XBEE TRANSMIT to 0x4098DA08 FUNCTION-----------------
 void transmitData(String data) {
@@ -165,7 +177,7 @@ void transmitData(String data) {
 }
 
 void sendData(String data) {
-  data = "GS" + data;
+  //data = "GS" + data;
   uint8_t payload[20] = {0};
   for (int j = 0; j < data.length(); j += 1) {
     payload[j] = data[j];

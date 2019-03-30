@@ -3,6 +3,7 @@
 #include <Adafruit_BMP085.h>
 #include <SPI.h>
 #include "SdFat.h"
+#include <Servo.h>
 SdFat SD;
 
 
@@ -56,7 +57,7 @@ int statusLed = 10; // green
 int errorLed  = 11; // red
 int dataLed   = 12; // yellow
 int rxled = 13;
-
+Servo xServo, yServo;
 // end XBEE
 void setup() {
   pinMode(statusLed, OUTPUT);
@@ -67,7 +68,9 @@ void setup() {
   Serial.begin(9600);
   Wire.begin();
   bmp085Calibration();
-  
+  // Attach servos to pins
+  xServo.attach(9);
+  yServo.attach(10);
   // start xbee in serial 2
   Serial2.begin(9600);
   xbee.setSerial(Serial2);
@@ -244,6 +247,9 @@ void interpretData(String xbeeInput){
       if (weredatatype == "Key Input"){
         int keypress = xbeeInput.substring(colonidx + 1, xbeeInput.length() - 1).toInt();
         interpretKeypress(keypress);
+      } else if (weredatatype == "Joystick"){
+        String joystickDir = xbeeInput.substring(colonidx + 1, xbeeInput.length() - 1);
+        interpretJoystickDir(joystickDir); //control camera with the directions
       } else {
         Serial.print("unable to interpret weredatatype: ");
         Serial.println(weredatatype);
@@ -254,7 +260,18 @@ void interpretData(String xbeeInput){
   }
   return 0;
 }
-
+//function to interpret joystick command from string input and move camera accordingly
+//input comes in form of string {x angle,y angle}
+void interpretJoystickDir(String JoystickDir){
+  int commaidx = JoystickDir.indexOf(','); 
+  int x_angle = JoystickDir.substring(0, commaidx).toInt(); //get x_angle;
+  int y_angle = JoystickDir.substring(commaidx, JoystickDir.length() - 1).toInt(); //get y_angle
+  int xservoOffset = 0; //angle offset between servo and 3 axis magnetometer in horizontal plane - not in use currently
+  int yservoOffset = 0; //angle offset between servo and 3 axis magnetometer in vertical plane - not in use currently
+  xServo.write(x_angle);
+  yServo.write(y_angle);
+  return 0;  
+}
 void interpretKeypress(int keypress){ //fn to interpret keypress. keypress input in form of ascii 
   switch (keypress){
     case 49: //ascii 1
