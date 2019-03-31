@@ -105,6 +105,7 @@ void lcdMenu(){
       transmitData("GSKey Input:52");
       receiveData();
       receiveData();
+      break;
   }
 }
 
